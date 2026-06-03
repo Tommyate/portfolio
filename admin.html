@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — MX21 Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f0f;
+    --surface: #191919;
+    --surface2: #202020;
+    --border: #2a2a2a;
+    --border2: #333;
+    --text: #f0f0f0;
+    --muted: #888;
+    --accent: #d4ff47;
+    --accent-dim: rgba(212,255,71,0.07);
+    --red: #ff4d4d;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-display); overflow-x: hidden; }
+
+  /* ── LOGIN SCREEN ── */
+  #loginScreen {
+    position: fixed; inset: 0; z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    transition: opacity .5s ease, transform .5s ease;
+  }
+  #loginScreen.out { opacity: 0; transform: scale(1.04); pointer-events: none; }
+
+  .login-box {
+    width: 100%; max-width: 400px;
+    padding: 0 24px;
+  }
+  .login-logo {
+    font-family: var(--font-mono); font-size: 11px;
+    letter-spacing: .2em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 48px;
+  }
+  .login-title {
+    font-size: 40px; font-weight: 800; letter-spacing: -.03em;
+    margin-bottom: 8px;
+  }
+  .login-sub {
+    font-family: var(--font-mono); font-size: 12px;
+    color: var(--muted); margin-bottom: 48px;
+  }
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block; font-family: var(--font-mono); font-size: 10px;
+    letter-spacing: .15em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+  }
+  .field input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--font-mono); font-size: 14px;
+    padding: 14px 16px; outline: none;
+    transition: border-color .2s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .login-btn {
+    width: 100%; margin-top: 24px;
+    background: var(--accent); color: #0f0f0f;
+    font-family: var(--font-mono); font-size: 12px;
+    letter-spacing: .15em; text-transform: uppercase;
+    border: none; padding: 16px; cursor: pointer;
+    font-weight: 500; transition: opacity .2s;
+  }
+  .login-btn:hover { opacity: .85; }
+  .login-error {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--red); margin-top: 12px; text-align: center;
+    height: 16px; letter-spacing: .05em;
+  }
+  .login-shake { animation: shake .4s ease; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)} 60%{transform:translateX(-5px)}
+    80%{transform:translateX(5px)}
+  }
+
+  /* ── ADMIN SHELL ── */
+  #adminShell { display: none; min-height: 100vh; }
+  #adminShell.active { display: flex; flex-direction: column; }
+
+  /* ── ADMIN NAV ── */
+  .admin-nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(15,15,15,.97); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 60px;
+  }
+  .admin-nav-logo { font-family: var(--font-mono); font-size: 12px; letter-spacing: .15em; text-transform: uppercase; color: var(--accent); }
+  .admin-nav-right { display: flex; align-items: center; gap: 20px; }
+  .nav-pill {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); padding: 6px 14px;
+    border: 1px solid transparent; cursor: pointer; transition: color .2s, border-color .2s;
+    background: none;
+  }
+  .nav-pill:hover { color: var(--text); }
+  .nav-pill.active { color: var(--accent); border-color: rgba(212,255,71,.3); }
+  .logout-btn {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); background: none;
+    border: 1px solid var(--border); padding: 6px 14px; cursor: pointer;
+    transition: color .2s, border-color .2s;
+  }
+  .logout-btn:hover { color: var(--red); border-color: var(--red); }
+
+  /* ── TABS ── */
+  .admin-tab { display: none; padding: 48px 40px; max-width: 1100px; margin: 0 auto; width: 100%; }
+  .admin-tab.active { display: block; }
+
+  /* ── SECTION CARD ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 32px; margin-bottom: 16px;
+    transition: border-color .3s;
+  }
+  .card:hover { border-color: var(--border2); }
+  .card-title {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 24px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .card-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── FORM GRID ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid.single { grid-template-columns: 1fr; }
+  .form-grid.triple { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+  .form-group label {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .form-group input,
+  .form-group textarea {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--font-mono); font-size: 13px;
+    padding: 12px 14px; outline: none; resize: vertical;
+    transition: border-color .2s;
+    width: 100%;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus { border-color: var(--accent); }
+  .form-group textarea { min-height: 90px; }
+
+  /* ── PROJECT CARD ── */
+  .project-card {
+    background: var(--surface); border: 1px solid var(--border);
+    margin-bottom: 12px; overflow: hidden;
+    transition: border-color .3s;
+  }
+  .project-card:hover { border-color: var(--border2); }
+  .project-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px; cursor: pointer;
+    user-select: none;
+  }
+  .project-card-title {
+    font-size: 18px; font-weight: 700; letter-spacing: -.01em;
+  }
+  .project-card-num {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-right: 16px;
+  }
+  .project-card-chevron {
+    font-size: 18px; color: var(--muted);
+    transition: transform .3s; display: inline-block;
+  }
+  .project-card.open .project-card-chevron { transform: rotate(180deg); }
+  .project-card-body {
+    max-height: 0; overflow: hidden;
+    transition: max-height .5s cubic-bezier(.16,1,.3,1);
+    border-top: 0 solid var(--border);
+  }
+  .project-card.open .project-card-body {
+    max-height: 600px;
+    border-top-width: 1px;
+  }
+  .project-card-inner { padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* ── SAVE BAR ── */
+  .save-bar {
+    position: sticky; bottom: 0;
+    background: rgba(15,15,15,.97); border-top: 1px solid var(--border);
+    padding: 16px 40px; display: flex; align-items: center;
+    justify-content: space-between; gap: 16px; z-index: 40;
+  }
+  .save-status {
+    font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    letter-spacing: .08em; transition: color .3s;
+  }
+  .save-status.saved { color: var(--accent); }
+  .save-status.error { color: var(--red); }
+  .save-btn {
+    background: var(--accent); color: #0f0f0f; border: none;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: .15em;
+    text-transform: uppercase; padding: 12px 32px; cursor: pointer;
+    font-weight: 500; transition: opacity .2s, transform .1s;
+  }
+  .save-btn:hover { opacity: .85; }
+  .save-btn:active { transform: scale(.97); }
+  .reset-btn {
+    background: none; color: var(--muted); border: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: .1em;
+    text-transform: uppercase; padding: 12px 24px; cursor: pointer;
+    transition: color .2s, border-color .2s;
+  }
+  .reset-btn:hover { color: var(--red); border-color: var(--red); }
+
+  /* ── PASSWORD TAB ── */
+  .pw-card { max-width: 480px; }
+  .divider { height: 1px; background: var(--border); margin: 32px 0; }
+
+  /* ── PREVIEW LINK ── */
+  .preview-link {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted); text-decoration: none;
+    border: 1px solid var(--border); padding: 8px 16px;
+    transition: color .2s, border-color .2s;
+  }
+  .preview-link:hover { color: var(--accent); border-color: rgba(212,255,71,.4); }
+
+  @media (max-width: 768px) {
+    .admin-nav { padding: 0 20px; }
+    .admin-tab { padding: 32px 20px; }
+    .form-grid, .form-grid.triple { grid-template-columns: 1fr; }
+    .project-card-inner { grid-template-columns: 1fr; }
+    .save-bar { padding: 14px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════ LOGIN ═══ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">MX21 / Admin</div>
+    <h1 class="login-title">Sign In</h1>
+    <p class="login-sub">Portfolio management panel</p>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="loginUser" autocomplete="username" placeholder="admin"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Enter Panel →</button>
+    <p class="login-error" id="loginError"></p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ ADMIN ═══ -->
+<div id="adminShell">
+  <nav class="admin-nav">
+    <span class="admin-nav-logo">MX21 Admin</span>
+    <div class="admin-nav-right">
+      <button class="nav-pill active" onclick="switchTab('content',this)">Content</button>
+      <button class="nav-pill" onclick="switchTab('projects',this)">Projects</button>
+      <button class="nav-pill" onclick="switchTab('links',this)">Links</button>
+      <button class="nav-pill" onclick="switchTab('settings',this)">Settings</button>
+      <a class="preview-link" href="portfolio.html" target="_blank">Preview ↗</a>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- ─── TAB: CONTENT ─── -->
+  <div class="admin-tab active" id="tab-content">
+
+    <!-- Hero -->
+    <div class="card">
+      <div class="card-title">Hero Section</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Eyebrow Text</label>
+          <input type="text" data-field="heroEyebrow" placeholder="Available for Projects — 2025"/>
+        </div>
+        <div class="form-group">
+          <label>Status Badge</label>
+          <input type="text" data-field="heroStatus" placeholder="Currently open to work"/>
+        </div>
+      </div>
+      <div class="form-grid single" style="margin-top:16px">
+        <div class="form-group">
+          <label>Hero Title (use \n for line breaks)</label>
+          <input type="text" data-field="heroTitle" placeholder="Digital Craft & Code."/>
+        </div>
+      </div>
+      <div class="form-grid single" style="margin-top:16px">
+        <div class="form-group">
+          <label>Hero Description</label>
+          <textarea data-field="heroDesc" placeholder="Developer & Designer building..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="card">
+      <div class="card-title">About Section</div>
+      <div class="form-grid single">
+        <div class="form-group">
+          <label>Paragraph 1</label>
+          <textarea data-field="about1" placeholder="I build things that..."></textarea>
+        </div>
+        <div class="form-group" style="margin-top:16px">
+          <label>Paragraph 2</label>
+          <textarea data-field="about2" placeholder="From Discord bots..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills -->
+    <div class="card">
+      <div class="card-title">Skills / Tech Stack</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Skill 1</label><input type="text" data-field="skill0" placeholder="Python"/></div>
+        <div class="form-group"><label>Skill 2</label><input type="text" data-field="skill1" placeholder="JavaScript"/></div>
+        <div class="form-group"><label>Skill 3</label><input type="text" data-field="skill2" placeholder="HTML/CSS"/></div>
+        <div class="form-group"><label>Skill 4</label><input type="text" data-field="skill3" placeholder="FFmpeg"/></div>
+        <div class="form-group"><label>Skill 5</label><input type="text" data-field="skill4" placeholder="Figma"/></div>
+        <div class="form-group"><label>Skill 6</label><input type="text" data-field="skill5" placeholder="Discord.py"/></div>
+        <div class="form-group"><label>Skill 7</label><input type="text" data-field="skill6" placeholder="PostgreSQL"/></div>
+        <div class="form-group"><label>Skill 8</label><input type="text" data-field="skill7" placeholder="Git"/></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card">
+      <div class="card-title">Stats</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Stat 1 — Number</label><input type="number" data-field="stat0num" placeholder="12"/></div>
+        <div class="form-group"><label>Stat 1 — Label</label><input type="text" data-field="stat0label" placeholder="Projects Shipped"/></div>
+        <div class="form-group"><label>Stat 2 — Number</label><input type="number" data-field="stat1num" placeholder="3"/></div>
+        <div class="form-group"><label>Stat 2 — Label</label><input type="text" data-field="stat1label" placeholder="Years Active"/></div>
+        <div class="form-group"><label>Stat 3 — Number</label><input type="number" data-field="stat2num" placeholder="40"/></div>
+        <div class="form-group"><label>Stat 3 — Label</label><input type="text" data-field="stat2label" placeholder="Clients Served"/></div>
+        <div class="form-group"><label>Stat 4 — Number</label><input type="number" data-field="stat3num" placeholder="99"/></div>
+        <div class="form-group"><label>Stat 4 — Label</label><input type="text" data-field="stat3label" placeholder="% Satisfaction"/></div>
+      </div>
+    </div>
+
+    <!-- Contact -->
+    <div class="card">
+      <div class="card-title">Contact Section</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Contact Title</label>
+          <input type="text" data-field="contactTitle" placeholder="Let's Build Together."/>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" data-field="contactEmail" placeholder="hello@mister-x21.dev"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="card">
+      <div class="card-title">Footer</div>
+      <div class="form-grid single">
+        <div class="form-group">
+          <label>Copyright Text</label>
+          <input type="text" data-field="footerCopy" placeholder="© 2025 Mister_x21 — All rights reserved."/>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── TAB: PROJECTS ─── -->
+  <div class="admin-tab" id="tab-projects">
+
+    <div class="project-card" id="pc0">
+      <div class="project-card-header" onclick="toggleProject('pc0')">
+        <div><span class="project-card-num">001</span><span class="project-card-title" id="pc0-title-preview">SentinelBot</span></div>
+        <span class="project-card-chevron">▾</span>
+      </div>
+      <div class="project-card-body">
+        <div class="project-card-inner">
+          <div class="form-group"><label>Project Name</label><input type="text" data-field="p0name" placeholder="SentinelBot" oninput="document.getElementById('pc0-title-preview').textContent=this.value||'Project 1'"/></div>
+          <div class="form-group"><label>Year</label><input type="text" data-field="p0year" placeholder="2024 — Ongoing"/></div>
+          <div class="form-group"><label>Role</label><input type="text" data-field="p0role" placeholder="Sole Developer"/></div>
+          <div class="form-group"><label>Tag 1</label><input type="text" data-field="p0tag0" placeholder="Python"/></div>
+          <div class="form-group"><label>Tag 2</label><input type="text" data-field="p0tag1" placeholder="Discord.py"/></div>
+          <div class="form-group"><label>Tag 3</label><input type="text" data-field="p0tag2" placeholder="PostgreSQL"/></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Overview</label><textarea data-field="p0overview" placeholder="A full-featured..."></textarea></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Highlights</label><textarea data-field="p0highlights" placeholder="10,000+ commands..."></textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="project-card" id="pc1">
+      <div class="project-card-header" onclick="toggleProject('pc1')">
+        <div><span class="project-card-num">002</span><span class="project-card-title" id="pc1-title-preview">NeonDash UI</span></div>
+        <span class="project-card-chevron">▾</span>
+      </div>
+      <div class="project-card-body">
+        <div class="project-card-inner">
+          <div class="form-group"><label>Project Name</label><input type="text" data-field="p1name" placeholder="NeonDash UI" oninput="document.getElementById('pc1-title-preview').textContent=this.value||'Project 2'"/></div>
+          <div class="form-group"><label>Year</label><input type="text" data-field="p1year" placeholder="2025"/></div>
+          <div class="form-group"><label>Role</label><input type="text" data-field="p1role" placeholder="Design & Development"/></div>
+          <div class="form-group"><label>Tag 1</label><input type="text" data-field="p1tag0" placeholder="HTML/CSS"/></div>
+          <div class="form-group"><label>Tag 2</label><input type="text" data-field="p1tag1" placeholder="JavaScript"/></div>
+          <div class="form-group"><label>Tag 3</label><input type="text" data-field="p1tag2" placeholder="Figma"/></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Overview</label><textarea data-field="p1overview"></textarea></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Highlights</label><textarea data-field="p1highlights"></textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="project-card" id="pc2">
+      <div class="project-card-header" onclick="toggleProject('pc2')">
+        <div><span class="project-card-num">003</span><span class="project-card-title" id="pc2-title-preview">ShortCraft Engine</span></div>
+        <span class="project-card-chevron">▾</span>
+      </div>
+      <div class="project-card-body">
+        <div class="project-card-inner">
+          <div class="form-group"><label>Project Name</label><input type="text" data-field="p2name" placeholder="ShortCraft Engine" oninput="document.getElementById('pc2-title-preview').textContent=this.value||'Project 3'"/></div>
+          <div class="form-group"><label>Year</label><input type="text" data-field="p2year" placeholder="2025"/></div>
+          <div class="form-group"><label>Role</label><input type="text" data-field="p2role" placeholder="Architecture & Dev"/></div>
+          <div class="form-group"><label>Tag 1</label><input type="text" data-field="p2tag0" placeholder="Python"/></div>
+          <div class="form-group"><label>Tag 2</label><input type="text" data-field="p2tag1" placeholder="FFmpeg"/></div>
+          <div class="form-group"><label>Tag 3</label><input type="text" data-field="p2tag2" placeholder="CapCut API"/></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Overview</label><textarea data-field="p2overview"></textarea></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Highlights</label><textarea data-field="p2highlights"></textarea></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── TAB: LINKS ─── -->
+  <div class="admin-tab" id="tab-links">
+    <div class="card">
+      <div class="card-title">Social & Contact Links</div>
+      <div class="form-grid single">
+        <div class="form-group"><label>GitHub URL</label><input type="url" data-field="linkGithub" placeholder="https://github.com/yourname"/></div>
+        <div class="form-group" style="margin-top:16px"><label>Discord URL</label><input type="url" data-field="linkDiscord" placeholder="https://discord.gg/yourserver"/></div>
+        <div class="form-group" style="margin-top:16px"><label>Twitter / X URL</label><input type="url" data-field="linkTwitter" placeholder="https://x.com/yourhandle"/></div>
+        <div class="form-group" style="margin-top:16px"><label>Contact Email</label><input type="email" data-field="contactEmail" placeholder="hello@mister-x21.dev"/></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Branding</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Nav Logo Text</label><input type="text" data-field="navLogo" placeholder="MX21 / Portfolio"/></div>
+        <div class="form-group"><label>Page Title (Browser Tab)</label><input type="text" data-field="siteTitle" placeholder="Mister_x21 — Portfolio"/></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TAB: SETTINGS ─── -->
+  <div class="admin-tab" id="tab-settings">
+    <div class="card pw-card">
+      <div class="card-title">Change Password</div>
+      <div class="form-group"><label>Current Password</label><input type="password" id="pwCurrent" placeholder="••••••••"/></div>
+      <div class="form-group" style="margin-top:16px"><label>New Password</label><input type="password" id="pwNew" placeholder="Min. 8 characters"/></div>
+      <div class="form-group" style="margin-top:16px"><label>Confirm New Password</label><input type="password" id="pwConfirm" placeholder="Repeat new password"/></div>
+      <button class="save-btn" style="margin-top:24px;width:100%" onclick="changePassword()">Update Password</button>
+      <p class="login-error" id="pwMsg" style="margin-top:12px;text-align:left"></p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card pw-card">
+      <div class="card-title">Danger Zone</div>
+      <p style="font-family:var(--font-mono);font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.7">Reset all portfolio content to the default placeholder values. This cannot be undone.</p>
+      <button class="reset-btn" style="width:100%" onclick="resetAllContent()">Reset All Content to Defaults</button>
+    </div>
+  </div>
+
+  <!-- SAVE BAR -->
+  <div class="save-bar">
+    <span class="save-status" id="saveStatus">Unsaved changes</span>
+    <div style="display:flex;gap:12px">
+      <button class="reset-btn" onclick="discardChanges()">Discard</button>
+      <button class="save-btn" onclick="saveAll()">Save Changes →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════
+const DEFAULT_USER = 'admin';
+const DEFAULT_PASS_HASH = btoa('mx21admin'); // base64 of default pw
+
+function getStoredHash() {
+  return localStorage.getItem('adminPassHash') || DEFAULT_PASS_HASH;
+}
+
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+
+  if (user === DEFAULT_USER && btoa(pass) === getStoredHash()) {
+    localStorage.setItem('adminSession', '1');
+    document.getElementById('loginScreen').classList.add('out');
+    setTimeout(() => {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('adminShell').classList.add('active');
+      loadAllFields();
+    }, 500);
+    errEl.textContent = '';
+  } else {
+    errEl.textContent = 'Incorrect username or password.';
+    document.querySelector('.login-box').classList.add('login-shake');
+    setTimeout(() => document.querySelector('.login-box').classList.remove('login-shake'), 400);
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('adminSession');
+  location.reload();
+}
+
+document.getElementById('loginPass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginUser').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginPass').focus();
+});
+
+// Auto-login if session active
+if (localStorage.getItem('adminSession') === '1') {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('adminShell').classList.add('active');
+  loadAllFields();
+}
+
+// ══════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-pill').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════
+// PROJECT CARDS TOGGLE
+// ══════════════════════════════════════════════════════
+function toggleProject(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// ══════════════════════════════════════════════════════
+// CONTENT LOAD & SAVE
+// ══════════════════════════════════════════════════════
+const DEFAULTS = {
+  heroEyebrow: 'Available for Projects — 2025',
+  heroTitle: 'Digital\nCraft &\nCode.',
+  heroDesc: 'Developer & Designer building precise, memorable digital experiences. Bots, tools, interfaces — with an eye for detail.',
+  heroStatus: 'Currently open to work',
+  about1: 'I build things that work precisely and look intentional. My focus lies where code meets design — functional systems with a clear visual identity.',
+  about2: 'From Discord bots and automation tools to fully designed interfaces, I care about the details others skip. Based online. Available worldwide.',
+  skill0:'Python', skill1:'JavaScript', skill2:'HTML/CSS', skill3:'FFmpeg',
+  skill4:'Figma', skill5:'Discord.py', skill6:'PostgreSQL', skill7:'Git',
+  stat0num:'12', stat0label:'Projects Shipped',
+  stat1num:'3',  stat1label:'Years Active',
+  stat2num:'40', stat2label:'Clients Served',
+  stat3num:'99', stat3label:'% Satisfaction',
+  contactTitle: "Let's Build Together.",
+  contactEmail: 'hello@mister-x21.dev',
+  footerCopy: '© 2025 Mister_x21 — All rights reserved.',
+  navLogo: 'MX21 / Portfolio',
+  siteTitle: 'Mister_x21 — Portfolio',
+  linkGithub: '#', linkDiscord: '#', linkTwitter: '#',
+  p0name:'SentinelBot', p0year:'2024 — Ongoing', p0role:'Sole Developer',
+  p0tag0:'Python', p0tag1:'Discord.py', p0tag2:'PostgreSQL',
+  p0overview:'A full-featured moderation & ticketing bot for Discord servers. Supports multi-tier permission systems, auto-moderation rules, and a custom ticket panel.',
+  p0highlights:'10,000+ commands processed per day. Persistent ticket log system with PostgreSQL. Slash command support + legacy prefix fallback.',
+  p1name:'NeonDash UI', p1year:'2025', p1role:'Design & Development',
+  p1tag0:'HTML/CSS', p1tag1:'JavaScript', p1tag2:'Figma',
+  p1overview:'A cyberpunk-aesthetic admin dashboard for community server stats. Real-time member graphs, role analytics, and message activity heatmaps.',
+  p1highlights:'Fully responsive. Animated data visualizations built with vanilla JS. Dark glassmorphism UI with neon accents and custom iconography.',
+  p2name:'ShortCraft Engine', p2year:'2025', p2role:'Architecture & Dev',
+  p2tag0:'Python', p2tag1:'FFmpeg', p2tag2:'CapCut API',
+  p2overview:'Automated short-form video pipeline. Takes raw footage, applies motion templates, captions, and transitions — exports ready-to-upload YouTube Shorts.',
+  p2highlights:'Cuts editing time by ~80%. Supports batch processing. Custom motion graphics overlays with dynamic text rendering via FFmpeg filters.'
+};
+
+function loadAllFields() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('portfolioContent') || '{}'); } catch(e) {}
+  const data = Object.assign({}, DEFAULTS, saved);
+
+  document.querySelectorAll('[data-field]').forEach(el => {
+    const key = el.dataset.field;
+    if (data[key] !== undefined) el.value = data[key];
+    // update preview titles
+    if (key === 'p0name') document.getElementById('pc0-title-preview').textContent = data[key] || 'Project 1';
+    if (key === 'p1name') document.getElementById('pc1-title-preview').textContent = data[key] || 'Project 2';
+    if (key === 'p2name') document.getElementById('pc2-title-preview').textContent = data[key] || 'Project 3';
+  });
+  setStatus('');
+}
+
+function saveAll() {
+  const data = {};
+  document.querySelectorAll('[data-field]').forEach(el => {
+    if (el.value.trim() !== '') data[el.dataset.field] = el.value.trim();
+  });
+  try {
+    localStorage.setItem('portfolioContent', JSON.stringify(data));
+    setStatus('saved');
+  } catch(e) {
+    setStatus('error');
+  }
+}
+
+function discardChanges() {
+  if (confirm('Discard all unsaved changes?')) loadAllFields();
+}
+
+function resetAllContent() {
+  if (confirm('Reset ALL content to defaults? This cannot be undone.')) {
+    localStorage.removeItem('portfolioContent');
+    loadAllFields();
+    setStatus('saved');
+  }
+}
+
+function setStatus(type) {
+  const el = document.getElementById('saveStatus');
+  el.className = 'save-status';
+  if (type === 'saved') { el.textContent = '✓ Saved successfully'; el.classList.add('saved'); }
+  else if (type === 'error') { el.textContent = '✕ Error saving'; el.classList.add('error'); }
+  else { el.textContent = 'Unsaved changes'; }
+}
+
+// Mark unsaved on any input
+document.addEventListener('input', e => {
+  if (e.target.dataset.field) setStatus('');
+});
+
+// ══════════════════════════════════════════════════════
+// CHANGE PASSWORD
+// ══════════════════════════════════════════════════════
+function changePassword() {
+  const cur = document.getElementById('pwCurrent').value;
+  const nw  = document.getElementById('pwNew').value;
+  const cnf = document.getElementById('pwConfirm').value;
+  const msg = document.getElementById('pwMsg');
+
+  if (btoa(cur) !== getStoredHash()) { msg.style.color='var(--red)'; msg.textContent = '✕ Current password incorrect.'; return; }
+  if (nw.length < 8) { msg.style.color='var(--red)'; msg.textContent = '✕ New password must be at least 8 characters.'; return; }
+  if (nw !== cnf) { msg.style.color='var(--red)'; msg.textContent = '✕ Passwords do not match.'; return; }
+
+  localStorage.setItem('adminPassHash', btoa(nw));
+  msg.style.color = 'var(--accent)';
+  msg.textContent = '✓ Password updated successfully.';
+  document.getElementById('pwCurrent').value = '';
+  document.getElementById('pwNew').value = '';
+  document.getElementById('pwConfirm').value = '';
+}
+</script>
+</body>
+</html>
