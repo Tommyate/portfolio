@@ -1,4 +1,4 @@
-name: Unzip
+name: Unzip to Branch
 
 on:
   push:
@@ -15,16 +15,53 @@ jobs:
     steps:
       - name: Repository auschecken
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: ZIP entpacken
+      - name: ZIP-Datei finden
+        id: zip
         run: |
-          unzip -o *.zip -d extracted
-          rm *.zip
+          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" -type f | head -n 1)
 
-      - name: Änderungen speichern
+          if [ -z "$ZIP_FILE" ]; then
+            echo "Keine ZIP-Datei gefunden."
+            exit 1
+          fi
+
+          echo "ZIP gefunden: $ZIP_FILE"
+          echo "file=$ZIP_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Neuen Branch erstellen
+        run: |
+          git checkout --orphan unzipped
+          git rm -rf . || true
+
+      - name: ZIP direkt ins Hauptverzeichnis entpacken
+        run: |
+          mkdir temp
+          unzip -q "${{ steps.zip.outputs.file }}" -d temp
+
+          # Falls die ZIP einen einzelnen übergeordneten Ordner enthält,
+          # wird nur dessen Inhalt verwendet.
+          ITEMS=$(find temp -mindepth 1 -maxdepth 1 | wc -l)
+
+          if [ "$ITEMS" -eq 1 ] && [ -d "$(find temp -mindepth 1 -maxdepth 1 -type d)" ]; then
+            INNER_DIR=$(find temp -mindepth 1 -maxdepth 1 -type d)
+            cp -r "$INNER_DIR"/. .
+          else
+            cp -r temp/. .
+          fi
+
+          rm -rf temp
+
+      - name: Dateien committen
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add .
-          git commit -m "Unzip uploaded files" || exit 0
-          git push
+          git commit -m "Update unzipped files"
+
+      - name: Branch pushen
+        run: |
+          git push origin unzipped --force
